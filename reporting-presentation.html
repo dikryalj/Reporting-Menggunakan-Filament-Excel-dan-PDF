@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporting dengan Filament, Excel, dan PDF — Pertemuan 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0f14;
+    --panel: #10151d;
+    --panel-alt: #161d27;
+    --border: #232c39;
+    --text: #e7edf5;
+    --text-dim: #8996a8;
+    --text-faint: #56637a;
+    --red: #ff5a45;
+    --red-dim: #ff5a4522;
+    --green: #43d17a;
+    --green-dim: #43d17a1f;
+    --blue: #7aa2f7;
+    --yellow: #e0b34e;
+    --purple: #c792ea;
+
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --radius: 10px;
+    --sidebar-w: 268px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html,body{
+    height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible{
+    outline: 2px solid var(--red);
+    outline-offset: 2px;
+  }
+
+  button{
+    font-family: inherit;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: inherit;
+  }
+
+  /* ---------- App shell ---------- */
+  .app{
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .titlebar{
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+  }
+  .dots{ display:flex; gap:7px; }
+  .dot{ width:11px; height:11px; border-radius:50%; }
+  .dot.r{ background:#ff5f57; }
+  .dot.y{ background:#febc2e; }
+  .dot.g{ background:#28c840; }
+  .titlebar .win-title{
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    letter-spacing: .2px;
+  }
+  .titlebar .win-title b{ color: var(--text); font-weight:500; }
+  .titlebar .spacer{ flex:1; }
+  .titlebar .chip{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .titlebar .chip .led{ width:6px; height:6px; border-radius:50%; background: var(--green); box-shadow:0 0 6px var(--green); }
+
+  .body{
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 14px 0 20px;
+  }
+  .sidebar::-webkit-scrollbar{ width:8px; }
+  .sidebar::-webkit-scrollbar-thumb{ background: var(--border); border-radius: 4px; }
+
+  .folder-label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 0 16px 10px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .folder-label svg{ width:13px; height:13px; opacity:.7; }
+
+  .file-item{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 16px 7px 22px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    text-align: left;
+    border-left: 2px solid transparent;
+    transition: background .15s, color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .file-item:hover{ background: var(--panel-alt); color: var(--text); }
+  .file-item.active{
+    background: var(--panel-alt);
+    color: var(--text);
+    border-left-color: var(--red);
+  }
+  .file-item .ext-dot{
+    width:7px; height:7px; border-radius:2px; flex-shrink:0;
+  }
+  .file-item .fname{ overflow:hidden; text-overflow:ellipsis; }
+  .file-item .fname b{ color: var(--text-faint); font-weight:500; }
+  .file-item.active .fname b{ color: var(--red); }
+
+  /* ---------- Editor / main ---------- */
+  .editor{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .tabbar{
+    height: 38px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+    padding-left: 4px;
+  }
+  .tab-current{
+    height: 100%;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 0 16px;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    border-top: 2px solid var(--red);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .tab-current .ext-dot{ width:7px; height:7px; border-radius:2px; }
+
+  .breadcrumb{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 0 18px;
+    display:flex; align-items:center; gap: 6px;
+  }
+
+  .slides-wrap{
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    padding: 0 0 40px;
+  }
+  .slides-wrap::-webkit-scrollbar{ width:9px; }
+  .slides-wrap::-webkit-scrollbar-thumb{ background: var(--border); border-radius:4px; }
+
+  .slide{
+    display: none;
+    padding: 52px 64px 30px;
+    max-width: 980px;
+    margin: 0 auto;
+    animation: slideIn .38s ease;
+  }
+  .slide.active{ display:block; }
+
+  @keyframes slideIn{
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .slide{ animation: none; }
+  }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--red);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{
+    content:''; width:16px; height:1px; background: var(--red);
+  }
+
+  h1.slide-title{
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    margin-bottom: 14px;
+  }
+  h1.slide-title .accent{ color: var(--red); }
+
+  .slide-sub{
+    font-size: 15.5px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    max-width: 640px;
+    margin-bottom: 30px;
+  }
+
+  .cover .slide-sub{ margin-bottom: 34px; }
+
+  /* ---------- generic content blocks ---------- */
+  .checklist{ list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom: 10px; }
+  .checklist li{
+    display:flex; align-items:flex-start; gap:12px;
+    font-size: 14.5px; color: var(--text); line-height:1.55;
+  }
+  .checklist .tick{
+    flex-shrink:0; width:20px; height:20px; border-radius:5px;
+    background: var(--green-dim); border:1px solid var(--green);
+    display:flex; align-items:center; justify-content:center;
+    margin-top:1px;
+  }
+  .checklist .tick svg{ width:11px; height:11px; }
+
+  .two-col{ display:grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  @media (max-width: 900px){ .two-col{ grid-template-columns: 1fr; } }
+
+  .col-label{
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing:.06em; margin-bottom: 14px;
+  }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:9px; }
+  .chip-tag{
+    font-family: var(--font-mono); font-size: 12.5px;
+    padding: 7px 13px; border-radius: 7px;
+    background: var(--panel-alt); border:1px solid var(--border); color: var(--text);
+  }
+
+  .note-box{
+    margin-top: 20px;
+    border-left: 2px solid var(--yellow);
+    background: #e0b34e12;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* studi kasus matrix */
+  .matrix{
+    display:grid;
+    grid-template-columns: 150px 1fr 1fr;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow:hidden;
+  }
+  .matrix > div{
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    font-size: 13.5px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .matrix > div:nth-child(3n){ border-right:none; }
+  .matrix .head{
+    background: var(--panel-alt);
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    font-size: 11.5px;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .matrix .rowlabel{ font-weight:600; color: var(--text); }
+  .matrix .yes{ color: var(--green); font-family: var(--font-mono); font-size:12.5px; }
+
+  /* timeline / alokasi waktu */
+  .timeline{ display:flex; flex-direction:column; gap:14px; }
+  .tl-row{ display:grid; grid-template-columns: 190px 1fr 60px; align-items:center; gap:14px; }
+  .tl-label{ font-size:13.5px; color: var(--text); }
+  .tl-bar-bg{ height:10px; background: var(--panel-alt); border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+  .tl-bar-fill{ height:100%; border-radius:6px; background: linear-gradient(90deg, var(--red), #ff8a6f); }
+  .tl-mins{ font-family: var(--font-mono); font-size:12.5px; color: var(--text-dim); text-align:right; }
+  .tl-total{
+    margin-top: 6px; padding-top: 14px; border-top: 1px dashed var(--border);
+    display:flex; justify-content:space-between; font-family: var(--font-mono); font-size: 13px; color: var(--text-faint);
+  }
+
+  /* format pills for slide F */
+  .format-row{ display:flex; gap:12px; margin-top: 18px; }
+  .format-pill{
+    font-family: var(--font-mono); font-size: 13px;
+    padding: 10px 18px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel-alt);
+    display:flex; align-items:center; gap:8px;
+  }
+  .format-pill .dotcol{ width:8px; height:8px; border-radius:50%; }
+
+  /* ---------- code / terminal blocks ---------- */
+  .code-card{
+    background: #0d1219;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 18px;
+  }
+  .code-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 9px 14px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-head .fname{
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+    display:flex; align-items:center; gap:7px;
+  }
+  .code-head .fname .ext-dot{ width:7px; height:7px; border-radius:2px; }
+  .copy-btn{
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-faint);
+    display:flex; align-items:center; gap:5px;
+    padding: 3px 8px; border-radius:5px;
+    transition: color .15s, background .15s;
+  }
+  .copy-btn:hover{ color: var(--text); background: var(--border); }
+  .copy-btn svg{ width:12px; height:12px; }
+  .copy-btn.copied{ color: var(--green); }
+
+  pre.code-body{
+    margin:0; padding: 16px 18px;
+    font-family: var(--font-mono);
+    font-size: 12.8px;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: #cdd6e2;
+  }
+  pre.code-body::-webkit-scrollbar{ height:8px; }
+  pre.code-body::-webkit-scrollbar-thumb{ background: var(--border); border-radius:4px; }
+
+  .tok-kw{ color: var(--purple); }
+  .tok-fn{ color: var(--blue); }
+  .tok-cls{ color: var(--yellow); }
+  .tok-str{ color: var(--green); }
+  .tok-com{ color: var(--text-faint); font-style: italic; }
+  .tok-var{ color: #ffb08a; }
+  .tok-tag{ color: #ff8a6f; }
+  .tok-attr{ color: var(--blue); }
+
+  .terminal-card{
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 18px;
+    overflow:hidden;
+  }
+  .terminal-head{
+    display:flex; align-items:center; gap:7px;
+    padding: 9px 14px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+  }
+  .terminal-body{
+    padding: 16px 18px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--green);
+    min-height: 52px;
+  }
+  .terminal-body .line{ display:flex; gap:8px; margin-bottom:6px; }
+  .terminal-body .prompt{ color: var(--text-faint); flex-shrink:0; }
+  .terminal-body .typed{ color: #d7f5e3; white-space:pre; }
+  .terminal-body .cursor{
+    display:inline-block; width:7px; height:14px; background: var(--green);
+    vertical-align: middle; margin-left:2px;
+    animation: blink 1s step-end infinite;
+  }
+  @media (prefers-reduced-motion: reduce){ .terminal-body .cursor{ animation:none; } }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* filament UI mockup */
+  .ui-mock{
+    background: #f4f1ea;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    color: #2b2a28;
+    margin: 6px 0 20px;
+  }
+  .ui-mock .mock-toolbar{ display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .ui-mock .mock-btn{
+    font-family: var(--font-body); font-size: 12.5px; font-weight:600;
+    padding: 8px 14px; border-radius:7px;
+  }
+  .ui-mock .mock-btn.primary{ background:#ff5a45; color:#fff; }
+  .ui-mock .mock-btn.ghost{ background:#fff; color:#2b2a28; border:1px solid #ddd7c9; }
+  .ui-mock .mock-table{ background:#fff; border-radius:7px; border:1px solid #e6e1d3; overflow:hidden; }
+  .ui-mock .mock-row{ display:grid; grid-template-columns: 40px 1fr 1fr 1fr; padding:9px 12px; font-size:12px; border-bottom:1px solid #f0ece1; }
+  .ui-mock .mock-row.head{ background:#faf7f0; color:#8a8574; font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.04em; }
+  .ui-mock .mock-row:last-child{ border-bottom:none; }
+
+  /* pengujian table */
+  .test-table{ width:100%; border-collapse: collapse; }
+  .test-table th, .test-table td{
+    padding: 10px 14px; text-align:left; font-size: 13.2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .test-table th{
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-faint);
+    text-transform:uppercase; letter-spacing:.05em; font-weight:500;
+  }
+  .test-table td{ color: var(--text-dim); }
+  .test-table td.num{ color: var(--text-faint); font-family: var(--font-mono); width:34px; }
+  .status-pill{
+    font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--green); background: var(--green-dim);
+    border: 1px solid var(--green);
+    padding: 3px 10px; border-radius: 20px;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .status-pill::before{ content:''; width:6px; height:6px; border-radius:50%; background: var(--green); }
+
+  .closing-line{
+    margin-top: 26px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-faint);
+    border-top: 1px dashed var(--border);
+    padding-top: 16px;
+  }
+  .closing-line b{ color: var(--green); }
+
+  /* ---------- interactive flow diagram ---------- */
+  .flow-toggle{ display:flex; gap:9px; margin-bottom: 26px; }
+  .flow-toggle button{
+    padding: 9px 18px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel-alt);
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim);
+    transition: all .2s;
+  }
+  .flow-toggle button.active{ color: #0b0f14; border-color: transparent; }
+  .flow-toggle button:not(.active):hover{ color: var(--text); }
+
+  .flow-diagram{ padding: 30px 0 6px; }
+  .flow-track{
+    position: relative; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 0 20px 44px;
+  }
+  .flow-track .flow-fill{
+    position:absolute; left:0; top:0; height:100%; border-radius:2px;
+    transition: width .5s ease, background .3s ease;
+  }
+  .flow-dot{
+    position:absolute; top:-8px; width:20px; height:20px; border-radius:50%;
+    transform: translateX(-50%);
+    transition: left .5s ease, background .3s ease, box-shadow .3s ease;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flow-track .flow-fill, .flow-dot, .flow-node .node-circle{ transition: none; }
+  }
+
+  .flow-nodes{ display:flex; justify-content:space-between; gap: 6px; }
+  .flow-node{
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:9px;
+    text-align:center; background:none; border:none; color:inherit;
+  }
+  .flow-node .node-circle{
+    width:38px; height:38px; border-radius:50%; flex-shrink:0;
+    border:2px solid var(--border); background: var(--panel);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-mono); font-size:12.5px; color: var(--text-faint);
+    transition: all .25s;
+  }
+  .flow-node.done .node-circle{ color:#0b0f14; }
+  .flow-node .node-label{
+    font-size: 11px; font-family: var(--font-mono); color: var(--text-faint);
+    line-height:1.4; max-width: 118px;
+  }
+  .flow-node.done .node-label{ color: var(--text); }
+
+  .flow-detail{
+    margin-top: 24px; padding: 16px 18px; min-height: 82px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--panel-alt);
+  }
+  .flow-detail .fd-title{
+    font-family: var(--font-mono); font-size: 12px; margin-bottom: 7px;
+    text-transform: uppercase; letter-spacing:.04em;
+  }
+  .flow-detail .fd-desc{ font-size: 13.5px; color: var(--text-dim); line-height: 1.6; }
+
+  .flow-controls{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top: 20px; }
+  .flow-play{
+    font-family: var(--font-mono); font-size: 12.5px;
+    padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+    display:flex; align-items:center; gap:8px; background: transparent; color: var(--text);
+    transition: all .2s;
+  }
+  .flow-play svg{ width:12px; height:12px; }
+  .flow-play:disabled{ opacity:.45; cursor:default; }
+  .flow-step-hint{ font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+
+  /* ---------- status bar ---------- */
+  .statusbar{
+    height: 40px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    padding: 0 16px;
+    background: var(--red);
+    color: #fff;
+  }
+  .statusbar .sb-item{
+    font-family: var(--font-mono); font-size: 11.5px;
+    display:flex; align-items:center; gap:6px;
+    opacity: .95;
+  }
+  .statusbar .spacer{ flex:1; }
+  .nav-btn{
+    width: 30px; height: 26px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:5px;
+    background: rgba(255,255,255,.14);
+    transition: background .15s;
+  }
+  .nav-btn:hover{ background: rgba(255,255,255,.28); }
+  .nav-btn:disabled{ opacity:.3; cursor:default; }
+  .nav-btn:disabled:hover{ background: rgba(255,255,255,.14); }
+  .nav-btn svg{ width:13px; height:13px; }
+  .progress-track{
+    flex: 1;
+    max-width: 220px;
+    height: 4px;
+    background: rgba(255,255,255,.25);
+    border-radius: 3px;
+    overflow:hidden;
+  }
+  .progress-fill{ height:100%; background:#fff; border-radius:3px; transition: width .3s ease; }
+  .kbd-hint{ display:none; }
+  @media (min-width: 720px){ .kbd-hint{ display:flex; } }
+
+  /* mobile */
+  .sidebar-toggle{ display:none; }
+  @media (max-width: 860px){
+    .sidebar{
+      position: fixed; z-index: 40; top:42px; bottom:40px; left:0;
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      box-shadow: 8px 0 24px rgba(0,0,0,.4);
+    }
+    .sidebar.open{ transform: translateX(0); }
+    .sidebar-toggle{
+      display:flex; align-items:center; justify-content:center;
+      width:28px; height:28px; border-radius:6px;
+      background: rgba(255,255,255,.06);
+    }
+    .slide{ padding: 36px 22px 24px; }
+    h1.slide-title{ font-size: 28px; }
+    .two-col{ gap: 26px; }
+    .matrix{ grid-template-columns: 100px 1fr 1fr; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="titlebar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Buka daftar file">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="win-title"><b>modul-laravel-pekan-5</b> — reporting.filament</div>
+    <div class="spacer"></div>
+    <div class="chip"><span class="led"></span> Laravel 13</div>
+    <div class="chip">PHP 8.3</div>
+  </div>
+
+  <div class="body">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="folder-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+        modul-laravel-pekan-5
+      </div>
+      <div id="fileList"></div>
+    </aside>
+
+    <main class="editor">
+
+      <div class="tabbar">
+        <div class="tab-current">
+          <span class="ext-dot" id="tabDot" style="background:var(--text-faint)"></span>
+          <span id="tabName">README.md</span>
+        </div>
+      </div>
+      <div class="breadcrumb">
+        <span>modul-laravel-pekan-5</span><span>›</span><span id="crumbName">README.md</span>
+      </div>
+
+      <div class="slides-wrap" id="slidesWrap">
+
+        <!-- COVER -->
+        <section class="slide cover" data-file="README.md" data-ext="md">
+          <div class="eyebrow">Modul Laravel · Pertemuan 5</div>
+          <h1 class="slide-title">Reporting dengan <span class="accent">Filament</span>,<br>Excel, dan PDF</h1>
+          <p class="slide-sub">Admin panel yang cuma bisa tampilkan data itu belum selesai. Di pertemuan ini, data Mahasiswa, Dosen, Mata Kuliah, dan Kelas bisa diunduh langsung sebagai laporan PDF atau Excel, satu klik dari dashboard Filament.</p>
+          <div class="terminal-card">
+            <div class="terminal-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+              terminal — install package
+            </div>
+            <div class="terminal-body" id="coverTerminal">
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="composer require maatwebsite/excel"></span></div>
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="composer require barryvdh/laravel-dompdf"></span></div>
+            </div>
+          </div>
+          <div class="closing-line">Geser dengan tombol di kanan bawah, tekan tombol arah keyboard, atau klik file di sidebar kiri.</div>
+        </section>
+
+        <!-- A -->
+        <section class="slide" data-file="A-tujuan-pembelajaran.md" data-ext="md">
+          <div class="eyebrow">A · Tujuan Pembelajaran</div>
+          <h1 class="slide-title">Yang bisa kamu lakukan setelah praktikum ini</h1>
+          <ul class="checklist">
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Memahami konsep reporting pada aplikasi web</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Membuat laporan data Mahasiswa</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Menghasilkan laporan dalam format PDF</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Menghasilkan laporan dalam format Excel</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Menambahkan tombol Report di Filament</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Membuat template laporan pakai Blade</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Mengunduh laporan langsung dari dashboard admin</li>
+          </ul>
+        </section>
+
+        <!-- B -->
+        <section class="slide" data-file="B-prasyarat.md" data-ext="md">
+          <div class="eyebrow">B · Prasyarat</div>
+          <h1 class="slide-title">Yang harus sudah kelar duluan</h1>
+          <ul class="checklist">
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Laravel 13</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Authentication</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Filament</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>CRUD Mahasiswa</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>CRUD Dosen</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>CRUD Mata Kuliah</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>CRUD Kelas</li>
+          </ul>
+          <div class="note-box">Kalau salah satu dari daftar ini belum jalan, beresin dulu sebelum masuk ke bagian reporting. Export dan PDF butuh data yang sudah bisa di-CRUD.</div>
+        </section>
+
+        <!-- C -->
+        <section class="slide" data-file="C-spesifikasi.json" data-ext="json">
+          <div class="eyebrow">C · Spesifikasi</div>
+          <h1 class="slide-title">Stack yang dipakai</h1>
+          <p class="slide-sub">Enam bagian ini kerja sama: Laravel jadi fondasi, Filament jadi tampilan admin, dan dua package tambahan yang menangani ekspor data.</p>
+          <div class="chips">
+            <span class="chip-tag">PHP 8.3</span>
+            <span class="chip-tag">Laravel 13</span>
+            <span class="chip-tag">MySQL</span>
+            <span class="chip-tag">Laravel Filament 4</span>
+            <span class="chip-tag">Laravel Excel</span>
+            <span class="chip-tag">Laravel DomPDF</span>
+          </div>
+          <div class="note-box">Filament 4 minta minimal Laravel 11 dan PHP 8.1. Kombinasi di modul ini sudah di atas syarat minimumnya, jadi tidak perlu upgrade apa pun sebelum mulai.</div>
+        </section>
+
+        <!-- D -->
+        <section class="slide" data-file="D-studi-kasus.md" data-ext="md">
+          <div class="eyebrow">D · Studi Kasus</div>
+          <h1 class="slide-title">Sistem Informasi Akademik</h1>
+          <p class="slide-sub">Admin mau mencetak empat jenis data, masing-masing dalam dua format, tanpa keluar dari Filament.</p>
+          <div class="matrix">
+            <div class="head">Data</div>
+            <div class="head">PDF</div>
+            <div class="head">Excel</div>
+
+            <div class="rowlabel">Mahasiswa</div>
+            <div class="yes">✓ tersedia</div>
+            <div class="yes">✓ tersedia</div>
+
+            <div class="rowlabel">Dosen</div>
+            <div>direncanakan</div>
+            <div>direncanakan</div>
+
+            <div class="rowlabel">Mata Kuliah</div>
+            <div>direncanakan</div>
+            <div>direncanakan</div>
+
+            <div class="rowlabel">Kelas</div>
+            <div>direncanakan</div>
+            <div>direncanakan</div>
+          </div>
+          <div class="note-box">Modul ini membangun alur lengkapnya lewat data Mahasiswa. Begitu satu resource selesai, tiga resource lain mengikuti pola yang sama persis.</div>
+        </section>
+
+        <!-- E -->
+        <section class="slide" data-file="E-alokasi-waktu.md" data-ext="md">
+          <div class="eyebrow">E · Alokasi Waktu</div>
+          <h1 class="slide-title">90 menit, lima kegiatan</h1>
+          <div class="timeline">
+            <div class="tl-row">
+              <div class="tl-label">Install Package</div>
+              <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:11%"></div></div>
+              <div class="tl-mins">10 mnt</div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-label">Membuat Export Excel</div>
+              <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:22%"></div></div>
+              <div class="tl-mins">20 mnt</div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-label">Membuat Report PDF</div>
+              <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:28%"></div></div>
+              <div class="tl-mins">25 mnt</div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-label">Integrasi Filament</div>
+              <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:22%"></div></div>
+              <div class="tl-mins">20 mnt</div>
+            </div>
+            <div class="tl-row">
+              <div class="tl-label">Pengujian</div>
+              <div class="tl-bar-bg"><div class="tl-bar-fill" style="width:17%"></div></div>
+              <div class="tl-mins">15 mnt</div>
+            </div>
+            <div class="tl-total"><span>Total</span><span>90 menit</span></div>
+          </div>
+          <div class="note-box">Porsi paling besar ada di Report PDF, karena selain nulis controller, ada langkah tambahan bikin template Blade dari nol.</div>
+        </section>
+
+        <!-- F -->
+        <section class="slide" data-file="F-apa-itu-reporting.md" data-ext="md">
+          <div class="eyebrow">F · Apa itu Reporting</div>
+          <h1 class="slide-title">Data mentah, jadi sesuatu yang bisa dibaca orang</h1>
+          <p class="slide-sub">Reporting adalah proses mengubah baris-baris di database jadi bentuk yang siap dibaca: laporan Mahasiswa, laporan Dosen, rekap Mata Kuliah, atau jadwal Perkuliahan.</p>
+          <div class="col-label">Format yang dipakai di modul ini</div>
+          <div class="format-row">
+            <div class="format-pill"><span class="dotcol" style="background:var(--red)"></span>PDF</div>
+            <div class="format-pill"><span class="dotcol" style="background:var(--green)"></span>Excel</div>
+            <div class="format-pill"><span class="dotcol" style="background:var(--text-faint)"></span>CSV</div>
+          </div>
+          <div class="note-box">Excel enak dipakai kalau datanya mau diolah lagi — difilter, dihitung ulang, dibuat pivot. PDF enak untuk laporan yang tinggal dicetak atau diarsipkan apa adanya.</div>
+        </section>
+
+        <!-- G -->
+        <section class="slide" data-file="G-install-package.sh" data-ext="sh">
+          <div class="eyebrow">G · Install Package</div>
+          <h1 class="slide-title">Dua package, dua tugas</h1>
+          <p class="slide-sub">Laravel Excel menangani ekspor ke .xlsx. Laravel DomPDF merender halaman Blade jadi file PDF. Keduanya dipasang lewat Composer.</p>
+          <div class="terminal-card">
+            <div class="terminal-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+              terminal
+            </div>
+            <div class="terminal-body" data-anim>
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="composer require maatwebsite/excel"></span></div>
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="composer require barryvdh/laravel-dompdf"></span></div>
+            </div>
+          </div>
+          <div class="note-box">Begitu instalasi selesai, kedua package langsung terdaftar lewat mekanisme package auto-discovery Laravel. Tidak perlu mendaftarkan service provider secara manual di config/app.php.</div>
+        </section>
+
+        <!-- H -->
+        <section class="slide" data-file="H-export-excel.php" data-ext="php">
+          <div class="eyebrow">H · Export Excel</div>
+          <h1 class="slide-title">Kelas export: sumber datanya Mahasiswa</h1>
+          <p class="slide-sub">Generate dulu kelasnya lewat artisan, lalu isi method <code style="font-family:var(--font-mono);color:var(--blue)">collection()</code> supaya Laravel Excel tahu data mana yang mau diekspor.</p>
+          <div class="terminal-card">
+            <div class="terminal-head">terminal</div>
+            <div class="terminal-body" data-anim>
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="php artisan make:export MahasiswaExport --model=Mahasiswa"></span></div>
+            </div>
+          </div>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>app/Exports/MahasiswaExport.php</div>
+              <button class="copy-btn" data-copy="mahasiswaExport">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="mahasiswaExport"><span class="tok-kw">use</span> App\Models\Mahasiswa;
+<span class="tok-kw">use</span> Maatwebsite\Excel\Concerns\FromCollection;
+
+<span class="tok-kw">class</span> <span class="tok-cls">MahasiswaExport</span> <span class="tok-kw">implements</span> <span class="tok-cls">FromCollection</span>
+{
+    <span class="tok-kw">public function</span> <span class="tok-fn">collection</span>()
+    {
+        <span class="tok-kw">return</span> Mahasiswa::<span class="tok-fn">all</span>();
+    }
+}</pre>
+          </div>
+          <div class="note-box"><code style="font-family:var(--font-mono);color:var(--blue)">FromCollection</code> cukup untuk data yang jumlahnya wajar. Kalau tabel Mahasiswa nanti berisi puluhan ribu baris, ganti ke <code style="font-family:var(--font-mono);color:var(--blue)">FromQuery</code> supaya query di-stream sedikit demi sedikit, bukan ditarik semua ke memori sekaligus.</div>
+        </section>
+
+        <!-- I -->
+        <section class="slide" data-file="I-report-controller.php" data-ext="php">
+          <div class="eyebrow">I · Report Controller</div>
+          <h1 class="slide-title">Controller yang memicu unduhan</h1>
+          <p class="slide-sub">ReportController memanggil MahasiswaExport dan menyerahkannya ke facade Excel, lengkap dengan nama file hasil unduhan.</p>
+          <div class="terminal-card">
+            <div class="terminal-head">terminal</div>
+            <div class="terminal-body" data-anim>
+              <div class="line"><span class="prompt">$</span><span class="typed" data-text="php artisan make:controller ReportController"></span></div>
+            </div>
+          </div>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>app/Http/Controllers/ReportController.php</div>
+              <button class="copy-btn" data-copy="reportController">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="reportController"><span class="tok-kw">use</span> App\Exports\MahasiswaExport;
+<span class="tok-kw">use</span> Maatwebsite\Excel\Facades\Excel;
+
+<span class="tok-kw">class</span> <span class="tok-cls">ReportController</span> <span class="tok-kw">extends</span> <span class="tok-cls">Controller</span>
+{
+    <span class="tok-kw">public function</span> <span class="tok-fn">mahasiswaExcel</span>()
+    {
+        <span class="tok-kw">return</span> Excel::<span class="tok-fn">download</span>(
+            <span class="tok-kw">new</span> <span class="tok-cls">MahasiswaExport</span>,
+            <span class="tok-str">'laporan-mahasiswa.xlsx'</span>
+        );
+    }
+}</pre>
+          </div>
+          <div class="note-box"><code style="font-family:var(--font-mono);color:var(--blue)">Excel::download()</code> otomatis menyetel header <code style="font-family:var(--font-mono);color:var(--blue)">Content-Disposition</code> pada response. Karena itu browser langsung memunculkan dialog simpan file, tanpa perlu diatur manual.</div>
+        </section>
+
+        <!-- J -->
+        <section class="slide" data-file="J-route-excel.php" data-ext="php">
+          <div class="eyebrow">J · Route Excel</div>
+          <h1 class="slide-title">Satu baris yang menyambungkan URL ke controller</h1>
+          <p class="slide-sub">Tanpa route ini, method <code style="font-family:var(--font-mono);color:var(--blue)">mahasiswaExcel()</code> di controller tidak bisa diakses lewat browser sama sekali.</p>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>routes/web.php</div>
+              <button class="copy-btn" data-copy="routeExcel">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="routeExcel">Route::<span class="tok-fn">get</span>(<span class="tok-str">'/report/mahasiswa/excel'</span>,
+    [ReportController::<span class="tok-kw">class</span>, <span class="tok-str">'mahasiswaExcel'</span>]
+);</pre>
+          </div>
+          <div class="note-box">Route ini sengaja dibuat GET, bukan POST. Method GET cocok untuk aksi yang cuma mengambil data, tanpa mengubah apa pun di database, dan bisa langsung dipanggil dari link atau dibuka lewat browser.</div>
+        </section>
+
+        <!-- K -->
+        <section class="slide" data-file="K-template-pdf.blade.php" data-ext="blade">
+          <div class="eyebrow">K · Template PDF</div>
+          <h1 class="slide-title">Blade sebagai kertas cetak</h1>
+          <p class="slide-sub">DomPDF merender file Blade biasa. Loop <code style="font-family:var(--font-mono);color:var(--blue)">@foreach</code> mengisi tabel dari data yang dikirim controller.</p>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:#ff8a6f"></span>resources/views/report/mahasiswa.blade.php</div>
+              <button class="copy-btn" data-copy="bladeTemplate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="bladeTemplate">&lt;<span class="tok-tag">h2</span> <span class="tok-attr">align</span>=<span class="tok-str">"center"</span>&gt;Laporan Data Mahasiswa&lt;/<span class="tok-tag">h2</span>&gt;
+
+&lt;<span class="tok-tag">table</span> <span class="tok-attr">border</span>=<span class="tok-str">"1"</span> <span class="tok-attr">width</span>=<span class="tok-str">"100%"</span> <span class="tok-attr">cellpadding</span>=<span class="tok-str">"5"</span>&gt;
+  &lt;<span class="tok-tag">tr</span>&gt;
+    &lt;<span class="tok-tag">th</span>&gt;No&lt;/<span class="tok-tag">th</span>&gt;&lt;<span class="tok-tag">th</span>&gt;NIM&lt;/<span class="tok-tag">th</span>&gt;&lt;<span class="tok-tag">th</span>&gt;Nama&lt;/<span class="tok-tag">th</span>&gt;&lt;<span class="tok-tag">th</span>&gt;Prodi&lt;/<span class="tok-tag">th</span>&gt;
+  &lt;/<span class="tok-tag">tr</span>&gt;
+  <span class="tok-kw">@foreach</span>($mahasiswa <span class="tok-kw">as</span> $m)
+  &lt;<span class="tok-tag">tr</span>&gt;
+    &lt;<span class="tok-tag">td</span>&gt;{{ $loop->iteration }}&lt;/<span class="tok-tag">td</span>&gt;
+    &lt;<span class="tok-tag">td</span>&gt;{{ $m->nim }}&lt;/<span class="tok-tag">td</span>&gt;
+    &lt;<span class="tok-tag">td</span>&gt;{{ $m->nama }}&lt;/<span class="tok-tag">td</span>&gt;
+    &lt;<span class="tok-tag">td</span>&gt;{{ $m->prodi }}&lt;/<span class="tok-tag">td</span>&gt;
+  &lt;/<span class="tok-tag">tr</span>&gt;
+  <span class="tok-kw">@endforeach</span>
+&lt;/<span class="tok-tag">table</span>&gt;</pre>
+          </div>
+          <div class="note-box">Halaman ini dirender oleh DomPDF, bukan browser. CSS modern seperti flexbox atau grid sering tidak didukung, jadi tag <code style="font-family:var(--font-mono);color:var(--blue)">&lt;table&gt;</code> lawas seperti di atas justru pilihan paling aman.</div>
+        </section>
+
+        <!-- L -->
+        <section class="slide" data-file="L-export-pdf.php" data-ext="php">
+          <div class="eyebrow">L · Export PDF</div>
+          <h1 class="slide-title">Merender Blade jadi file .pdf</h1>
+          <p class="slide-sub">Method ini mengambil semua data Mahasiswa, mengirimnya ke template Blade, lalu langsung menawarkan file untuk diunduh.</p>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>app/Http/Controllers/ReportController.php</div>
+              <button class="copy-btn" data-copy="exportPdf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="exportPdf"><span class="tok-kw">use</span> Barryvdh\DomPDF\Facade\Pdf;
+
+<span class="tok-kw">public function</span> <span class="tok-fn">mahasiswaPdf</span>()
+{
+    $data = Mahasiswa::<span class="tok-fn">all</span>();
+
+    $pdf = Pdf::<span class="tok-fn">loadView</span>(
+        <span class="tok-str">'report.mahasiswa'</span>,
+        [<span class="tok-str">'mahasiswa'</span> =&gt; $data]
+    );
+
+    <span class="tok-kw">return</span> $pdf-&gt;<span class="tok-fn">download</span>(<span class="tok-str">'laporan-mahasiswa.pdf'</span>);
+}</pre>
+          </div>
+          <div class="note-box"><code style="font-family:var(--font-mono);color:var(--blue)">Pdf::loadView()</code> menerima nama file Blade dan array data, persis seperti <code style="font-family:var(--font-mono);color:var(--blue)">view()</code> biasa. Bedanya cuma hasil akhir yang di-stream sebagai PDF, bukan halaman HTML.</div>
+        </section>
+
+        <!-- M -->
+        <section class="slide" data-file="M-route-pdf.php" data-ext="php">
+          <div class="eyebrow">M · Route PDF</div>
+          <h1 class="slide-title">Route kedua, pola yang sama</h1>
+          <p class="slide-sub">Sama seperti route Excel — bedanya cuma method tujuan dan path URL-nya.</p>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>routes/web.php</div>
+              <button class="copy-btn" data-copy="routePdf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="routePdf">Route::<span class="tok-fn">get</span>(<span class="tok-str">'/report/mahasiswa/pdf'</span>,
+    [ReportController::<span class="tok-kw">class</span>, <span class="tok-str">'mahasiswaPdf'</span>]
+);</pre>
+          </div>
+          <div class="note-box">Dua route, dua tujuan berbeda, tapi satu pola. Kalau nanti nambah laporan Dosen atau Kelas, tinggal salin dua baris ini dan ganti path serta nama method-nya.</div>
+        </section>
+
+        <!-- N -->
+        <section class="slide" data-file="N-filament-menu.php" data-ext="php">
+          <div class="eyebrow">N · Menu Report di Filament</div>
+          <h1 class="slide-title">Dua tombol baru di atas tabel</h1>
+          <p class="slide-sub">Header action di Resource Mahasiswa memanggil kedua route di atas dan membukanya di tab baru — tidak keluar dari dashboard.</p>
+          <div class="code-card">
+            <div class="code-head">
+              <div class="fname"><span class="ext-dot" style="background:var(--purple)"></span>app/Filament/Resources/MahasiswaResource.php</div>
+              <button class="copy-btn" data-copy="filamentMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="code-body" id="filamentMenu"><span class="tok-kw">use</span> Filament\Actions\Action;
+
+<span class="tok-kw">public static function</span> <span class="tok-fn">getHeaderActions</span>(): <span class="tok-cls">array</span>
+{
+    <span class="tok-kw">return</span> [
+        Action::<span class="tok-fn">make</span>(<span class="tok-str">'Export Excel'</span>)
+            -&gt;<span class="tok-fn">url</span>(<span class="tok-str">'/report/mahasiswa/excel'</span>)
+            -&gt;<span class="tok-fn">openUrlInNewTab</span>(),
+        Action::<span class="tok-fn">make</span>(<span class="tok-str">'Export PDF'</span>)
+            -&gt;<span class="tok-fn">url</span>(<span class="tok-str">'/report/mahasiswa/pdf'</span>)
+            -&gt;<span class="tok-fn">openUrlInNewTab</span>(),
+    ];
+}</pre>
+          </div>
+          <div class="col-label">Tampilan di halaman Mahasiswa</div>
+          <div class="ui-mock">
+            <div class="mock-toolbar">
+              <span class="mock-btn primary">+ Tambah Mahasiswa</span>
+              <span class="mock-btn ghost">Export Excel</span>
+              <span class="mock-btn ghost">Export PDF</span>
+            </div>
+            <div class="mock-table">
+              <div class="mock-row head"><span>No</span><span>NIM</span><span>Nama</span><span>Prodi</span></div>
+              <div class="mock-row"><span>1</span><span>21801xx</span><span>Dikkkkyy</span><span>Ilmu Komunikasi</span></div>
+              <div class="mock-row"><span>2</span><span>21802xx</span><span>—</span><span>—</span></div>
+            </div>
+          </div>
+          <div class="note-box"><code style="font-family:var(--font-mono);color:var(--blue)">openUrlInNewTab()</code> penting di sini — tanpa itu, proses download akan menggantikan halaman admin yang sedang dibuka, bukan cuma menambah tab baru.</div>
+        </section>
+
+        <!-- Q: interactive flow diagram -->
+        <section class="slide" data-file="Q-alur-request.svg" data-ext="svg">
+          <div class="eyebrow">Q · Alur Request</div>
+          <h1 class="slide-title">Dari klik tombol sampai file terunduh</h1>
+          <p class="slide-sub">Semua potongan kode di slide sebelumnya sebenarnya satu alur yang sama. Pilih formatnya, lalu tekan "Jalankan alur" atau klik satu-satu tiap simpulnya.</p>
+
+          <div class="flow-toggle" role="tablist" aria-label="Pilih format laporan">
+            <button type="button" id="flowBtnExcel" role="tab" aria-selected="true">Alur Excel</button>
+            <button type="button" id="flowBtnPdf" role="tab" aria-selected="false">Alur PDF</button>
+          </div>
+
+          <div class="flow-diagram">
+            <div class="flow-track">
+              <div class="flow-fill" id="flowFill" style="width:0%"></div>
+              <div class="flow-dot" id="flowDot" style="left:0%"></div>
+            </div>
+            <div class="flow-nodes" id="flowNodes"></div>
+          </div>
+
+          <div class="flow-detail" id="flowDetail">
+            <div class="fd-title" id="flowDetailTitle">Header action Filament</div>
+            <div class="fd-desc" id="flowDetailDesc">Klik salah satu simpul atau tekan "Jalankan alur" untuk mulai.</div>
+          </div>
+
+          <div class="flow-controls">
+            <button class="flow-play" id="flowPlay">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4l14 8-14 8V4z"/></svg>
+              Jalankan alur
+            </button>
+            <span class="flow-step-hint" id="flowHint">Langkah 1 dari 5</span>
+          </div>
+        </section>
+
+        <!-- O -->
+        <section class="slide" data-file="O-hasil.md" data-ext="md">
+          <div class="eyebrow">O · Hasil yang Diharapkan</div>
+          <h1 class="slide-title">Setelah semua bagian tersambung</h1>
+          <ul class="checklist">
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengelola data Mahasiswa</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengelola data Dosen</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengelola Mata Kuliah</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengelola Kelas</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengunduh laporan Excel</li>
+            <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#43d17a" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></span>Admin bisa mengunduh laporan PDF</li>
+          </ul>
+          <div class="note-box">Semuanya lewat dashboard Filament yang sama, tanpa aplikasi tambahan.</div>
+        </section>
+
+        <!-- P -->
+        <section class="slide" data-file="P-pengujian.md" data-ext="md">
+          <div class="eyebrow">P · Pengujian</div>
+          <h1 class="slide-title">Tujuh pengujian, tujuh berhasil</h1>
+          <table class="test-table">
+            <thead><tr><th>No</th><th>Pengujian</th><th>Hasil</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td>Login Admin</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">2</td><td>CRUD Mahasiswa</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">3</td><td>Export Excel Mahasiswa</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">4</td><td>Export PDF Mahasiswa</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">5</td><td>Data PDF sesuai database</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">6</td><td>Data Excel sesuai database</td><td><span class="status-pill">Berhasil</span></td></tr>
+              <tr><td class="num">7</td><td>Report dapat diunduh</td><td><span class="status-pill">Berhasil</span></td></tr>
+            </tbody>
+          </table>
+          <div class="closing-line">Modul reporting <b>siap dipakai</b>. Pola yang sama di resource Mahasiswa tinggal diulang untuk Dosen, Mata Kuliah, dan Kelas.</div>
+        </section>
+
+      </div>
+
+      <div class="statusbar">
+        <button class="nav-btn" id="btnPrev" aria-label="Slide sebelumnya">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button class="nav-btn" id="btnNext" aria-label="Slide berikutnya">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <div class="sb-item" id="slideCount">1 / 18</div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="spacer"></div>
+        <div class="sb-item kbd-hint">← → untuk navigasi</div>
+        <div class="sb-item">main</div>
+        <div class="sb-item">UTF-8</div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  const extColors = { md:'#8996a8', php:'#c792ea', json:'#e0b34e', sh:'#43d17a', blade:'#ff8a6f', svg:'#5ec8d8' };
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const fileListEl = document.getElementById('fileList');
+  const tabName = document.getElementById('tabName');
+  const tabDot = document.getElementById('tabDot');
+  const crumbName = document.getElementById('crumbName');
+  const slideCount = document.getElementById('slideCount');
+  const progressFill = document.getElementById('progressFill');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const slidesWrap = document.getElementById('slidesWrap');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+
+  let current = 0;
+
+  // build sidebar file list
+  slides.forEach((s, i) => {
+    const file = s.dataset.file;
+    const ext = s.dataset.ext;
+    const btn = document.createElement('button');
+    btn.className = 'file-item';
+    btn.setAttribute('data-index', i);
+
+    const dot = document.createElement('span');
+    dot.className = 'ext-dot';
+    dot.style.background = extColors[ext] || '#8996a8';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'fname';
+    const parts = file.split(/(?<=^[A-Z])-/);
+    if (parts.length === 2) {
+      nameSpan.innerHTML = '<b>' + parts[0] + '</b>-' + parts[1];
+    } else {
+      nameSpan.textContent = file;
+    }
+
+    btn.appendChild(dot);
+    btn.appendChild(nameSpan);
+    btn.addEventListener('click', () => goTo(i));
+    fileListEl.appendChild(btn);
+  });
+
+  const fileButtons = Array.from(fileListEl.querySelectorAll('.file-item'));
+
+  function typeLine(el){
+    const text = el.getAttribute('data-text');
+    if (!text || el.dataset.done) return;
+    el.dataset.done = '1';
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { el.textContent = text; return; }
+    let i = 0;
+    el.textContent = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    el.after(cursor);
+    const iv = setInterval(() => {
+      el.textContent = text.slice(0, i+1);
+      i++;
+      if (i >= text.length) { clearInterval(iv); cursor.remove(); }
+    }, 18);
+  }
+
+  function runAnimationsFor(slide){
+    slide.querySelectorAll('.typed').forEach(el => {
+      setTimeout(() => typeLine(el), 120);
+    });
+  }
+
+  function render(){
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    fileButtons.forEach((b, i) => b.classList.toggle('active', i === current));
+
+    const activeSlide = slides[current];
+    const file = activeSlide.dataset.file;
+    const ext = activeSlide.dataset.ext;
+    tabName.textContent = file;
+    crumbName.textContent = file;
+    tabDot.style.background = extColors[ext] || '#8996a8';
+
+    slideCount.textContent = (current+1) + ' / ' + slides.length;
+    progressFill.style.width = ((current) / (slides.length-1) * 100) + '%';
+
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === slides.length - 1;
+
+    const activeBtn = fileButtons[current];
+    if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest' });
+
+    slidesWrap.scrollTop = 0;
+
+    runAnimationsFor(activeSlide);
+  }
+
+  function goTo(i){
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    render();
+    if (window.innerWidth <= 860) sidebar.classList.remove('open');
+  }
+
+  btnPrev.addEventListener('click', () => goTo(current - 1));
+  btnNext.addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); goTo(current + 1); }
+    if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(slides.length - 1);
+  });
+
+  sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+  // copy buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const targetId = btn.getAttribute('data-copy');
+      const codeEl = document.getElementById(targetId);
+      if (!codeEl) return;
+      try {
+        await navigator.clipboard.writeText(codeEl.textContent);
+        const original = btn.innerHTML;
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12l5 5L20 6"/></svg> Copied';
+        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = original; }, 1500);
+      } catch(e) {}
+    });
+  });
+
+  // ---------- interactive flow diagram ----------
+  const flowData = {
+    excel: {
+      color: '#43d17a',
+      steps: [
+        { short:'Klik', label:'Klik Export Excel', title:'1 · Header action Filament', desc:'User klik tombol "Export Excel" di atas tabel Mahasiswa. Tombol ini cuma link biasa yang dibuka di tab baru.' },
+        { short:'Route', label:'GET /report/mahasiswa/excel', title:'2 · Route', desc:'Route mencocokkan URL ini dan meneruskan request ke method mahasiswaExcel() di ReportController.' },
+        { short:'Ctrl', label:'ReportController@mahasiswaExcel', title:'3 · Controller', desc:'Controller memanggil Excel::download() dan menyerahkan instance MahasiswaExport sebagai sumber datanya.' },
+        { short:'Export', label:'MahasiswaExport::collection()', title:'4 · Export class', desc:'Method collection() mengambil semua baris Mahasiswa dari database lewat Eloquent.' },
+        { short:'.xlsx', label:'laporan-mahasiswa.xlsx', title:'5 · File terunduh', desc:'Laravel Excel menyusun data itu jadi file .xlsx, browser langsung menampilkan dialog simpan.' }
+      ]
+    },
+    pdf: {
+      color: '#ff5a45',
+      steps: [
+        { short:'Klik', label:'Klik Export PDF', title:'1 · Header action Filament', desc:'User klik tombol "Export PDF" di atas tabel Mahasiswa, juga terbuka di tab baru.' },
+        { short:'Route', label:'GET /report/mahasiswa/pdf', title:'2 · Route', desc:'Route ini meneruskan request ke method mahasiswaPdf() di ReportController.' },
+        { short:'Ctrl', label:'ReportController@mahasiswaPdf', title:'3 · Controller', desc:'Controller mengambil semua data Mahasiswa lalu mengirimnya ke Pdf::loadView().' },
+        { short:'Blade', label:'report.mahasiswa.blade.php', title:'4 · Template Blade', desc:'DomPDF merender file Blade ini jadi halaman PDF, mengisi tabel lewat @foreach.' },
+        { short:'.pdf', label:'laporan-mahasiswa.pdf', title:'5 · File terunduh', desc:'Hasil render dikirim balik sebagai file .pdf yang langsung terunduh di browser.' }
+      ]
+    }
+  };
+
+  const flowNodesEl = document.getElementById('flowNodes');
+  const flowFillEl = document.getElementById('flowFill');
+  const flowDotEl = document.getElementById('flowDot');
+  const flowDetailTitle = document.getElementById('flowDetailTitle');
+  const flowDetailDesc = document.getElementById('flowDetailDesc');
+  const flowPlayBtn = document.getElementById('flowPlay');
+  const flowHint = document.getElementById('flowHint');
+  const flowBtnExcel = document.getElementById('flowBtnExcel');
+  const flowBtnPdf = document.getElementById('flowBtnPdf');
+
+  let flowFormat = 'excel';
+  let flowStep = 0;
+  let flowTimer = null;
+
+  function buildFlowNodes(){
+    flowNodesEl.innerHTML = '';
+    flowData[flowFormat].steps.forEach((s, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'flow-node';
+      btn.type = 'button';
+      btn.innerHTML = '<span class="node-circle">' + (i+1) + '</span><span class="node-label">' + s.label + '</span>';
+      btn.addEventListener('click', () => { stopFlowPlay(); setFlowStep(i); });
+      flowNodesEl.appendChild(btn);
+    });
+  }
+
+  function setFlowStep(i){
+    flowStep = i;
+    const data = flowData[flowFormat];
+    const color = data.color;
+    const nodeEls = Array.from(flowNodesEl.querySelectorAll('.flow-node'));
+    nodeEls.forEach((el, idx) => {
+      el.classList.toggle('done', idx <= i);
+      const circle = el.querySelector('.node-circle');
+      if (idx <= i){
+        circle.style.borderColor = color;
+        circle.style.background = color;
+        circle.style.boxShadow = idx === i ? ('0 0 14px ' + color) : 'none';
+      } else {
+        circle.style.borderColor = '';
+        circle.style.background = '';
+        circle.style.boxShadow = 'none';
+      }
+    });
+    const pct = (i / (data.steps.length - 1)) * 100;
+    flowFillEl.style.width = pct + '%';
+    flowFillEl.style.background = color;
+    flowDotEl.style.left = pct + '%';
+    flowDotEl.style.background = color;
+    flowDotEl.style.boxShadow = '0 0 12px ' + color;
+    flowDetailTitle.textContent = data.steps[i].title;
+    flowDetailTitle.style.color = color;
+    flowDetailDesc.textContent = data.steps[i].desc;
+    flowHint.textContent = 'Langkah ' + (i+1) + ' dari ' + data.steps.length;
+  }
+
+  function stopFlowPlay(){
+    if (flowTimer){ clearInterval(flowTimer); flowTimer = null; }
+    flowPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 4l14 8-14 8V4z"/></svg> Jalankan alur';
+  }
+
+  function playFlow(){
+    stopFlowPlay();
+    setFlowStep(0);
+    flowPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg> Berhenti';
+    const total = flowData[flowFormat].steps.length;
+    let i = 0;
+    flowTimer = setInterval(() => {
+      i++;
+      if (i >= total){ stopFlowPlay(); return; }
+      setFlowStep(i);
+    }, 1100);
+  }
+
+  function setFlowFormat(fmt){
+    stopFlowPlay();
+    flowFormat = fmt;
+    flowBtnExcel.classList.toggle('active', fmt === 'excel');
+    flowBtnPdf.classList.toggle('active', fmt === 'pdf');
+    const color = flowData[fmt].color;
+    flowBtnExcel.style.background = fmt === 'excel' ? color : '';
+    flowBtnPdf.style.background = fmt === 'pdf' ? color : '';
+    buildFlowNodes();
+    setFlowStep(0);
+  }
+
+  flowBtnExcel.addEventListener('click', () => setFlowFormat('excel'));
+  flowBtnPdf.addEventListener('click', () => setFlowFormat('pdf'));
+  flowPlayBtn.addEventListener('click', () => { flowTimer ? stopFlowPlay() : playFlow(); });
+
+  setFlowFormat('excel');
+
+  render();
+})();
+</script>
+
+</body>
+</html>
