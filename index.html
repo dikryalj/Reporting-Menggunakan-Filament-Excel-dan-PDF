@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -987,7 +987,16 @@
     text-align:center; padding:30px 20px; animation: qCardIn .5s ease;
     display:flex; flex-direction:column; align-items:center; gap:14px;
   }
-  .quiz-result-icon-svg{ width:76px; height:76px; margin-bottom:8px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+  .quiz-result-image {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 20px;
+    border: 3px solid var(--border);
+    margin-bottom: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
   .quiz-result-title{ font-family:var(--font-display); font-size:32px; font-weight:700; }
   .quiz-result-score{ font-size:16px; color:var(--text-dim); max-width:360px; text-align:center; }
   .quiz-retry-btn{
@@ -2261,21 +2270,21 @@
 
     var pct = Math.round((score / QUESTIONS.length) * 100);
     
-    // Insert beautiful styled icons on score screen
-    const goldTrophy = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e0af68" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34M12 2a4 4 0 0 1 4 4v7a4 4 0 0 1-4 4 4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const blueThumbs = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#7aa2f7" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const redFlame = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f7768e" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2zM12 12L19.07 4.93" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    // Insert cat meme image badges on score screen
+    const luarBiasaImg = '<img class="quiz-result-image" src="images/luar-biasa.jpg" alt="Luar Biasa">';
+    const bagusImg = '<img class="quiz-result-image" src="images/bagus.jpg" alt="Bagus">';
+    const cobaLagiImg = '<img class="quiz-result-image" src="images/coba-lagi.jpg" alt="Coba Lagi">';
 
     if(pct >= 80){
-      resultIcon.innerHTML = goldTrophy;
+      resultIcon.innerHTML = luarBiasaImg;
       resultTitle.textContent = 'Luar Biasa!';
       resultTitle.style.color = 'var(--green)';
     } else if(pct >= 50){
-      resultIcon.innerHTML = blueThumbs;
+      resultIcon.innerHTML = bagusImg;
       resultTitle.textContent = 'Bagus!';
       resultTitle.style.color = 'var(--yellow)';
     } else {
-      resultIcon.innerHTML = redFlame;
+      resultIcon.innerHTML = cobaLagiImg;
       resultTitle.textContent = 'Coba Lagi!';
       resultTitle.style.color = 'var(--red)';
     }
