@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -803,6 +803,220 @@
     display: flex;
     align-items: center;
   }
+
+  /* ============================================================
+     KUIS INTERAKTIF — Susun Kode & Pilihan Ganda (Duolingo Style)
+  ============================================================ */
+  .quiz-progress-wrap{
+    display:flex; align-items:center; gap:12px; margin-bottom:10px;
+  }
+  .quiz-progress-bar{
+    flex:1; height:12px; background:var(--border); border-radius:99px; overflow:hidden;
+  }
+  .quiz-progress-fill{
+    height:100%; border-radius:99px;
+    background: linear-gradient(90deg, var(--green), #5eeea0);
+    transition: width .45s cubic-bezier(.4,0,.2,1);
+  }
+  .quiz-progress-label{
+    font-family:var(--font-mono); font-size:12px; color:var(--text-faint); white-space:nowrap;
+  }
+  .quiz-hearts{
+    display:flex; gap:8px; margin-bottom:18px;
+  }
+  .quiz-heart-svg{
+    color: #ff4b4b;
+    transition: color .35s, transform .35s, opacity .35s;
+    filter: drop-shadow(0 2px 5px rgba(255,75,75,0.25));
+  }
+  .quiz-heart-svg.dead{
+    color: var(--border);
+    opacity: 0.25;
+    transform: scale(0.85);
+    filter: none;
+  }
+
+  /* Question card */
+  .quiz-card{
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 28px 22px;
+    margin-bottom: 18px;
+    animation: qCardIn .35s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  @keyframes qCardIn{
+    from{ opacity:0; transform:translateY(14px); }
+    to{   opacity:1; transform:translateY(0); }
+  }
+  .quiz-card .q-type-badge{
+    font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.06em; padding:3px 9px; border-radius:99px;
+    background:var(--panel); color:var(--text-faint); border:1px solid var(--border);
+    display:inline-flex; align-items:center; gap:5px; margin-bottom:14px;
+  }
+  .quiz-card .q-text{
+    font-size:15px; font-weight:600; line-height:1.55; color:var(--text); margin-bottom:20px;
+  }
+  .quiz-card .q-text code{
+    font-family:var(--font-mono); font-size:13px; background:var(--panel);
+    border:1px solid var(--border); padding:1px 6px; border-radius:4px; color:var(--blue);
+  }
+
+  /* ---- Multiple Choice ---- */
+  .quiz-choices{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:600px){ .quiz-choices{ grid-template-columns:1fr; } }
+  .quiz-choice{
+    padding:13px 16px; border-radius:10px;
+    border:2px solid var(--border); background:var(--panel);
+    cursor:pointer; font-size:13.5px; color:var(--text);
+    transition: all .18s; text-align:left; line-height:1.5;
+    display:flex; align-items:flex-start; gap:11px;
+  }
+  .quiz-choice:hover:not(.locked){ border-color:var(--blue); background:#7aa2f714; }
+  .quiz-choice.selected{ border-color:var(--blue); background:#7aa2f720; }
+  .quiz-choice.correct{ border-color:var(--green); background:var(--green-dim); color:var(--green); }
+  .quiz-choice.wrong  { border-color:var(--red);   background:var(--red-dim);   color:var(--red); }
+  .quiz-choice.reveal-correct{ border-color:var(--green); background:var(--green-dim); color:var(--green); }
+  .quiz-choice .choice-letter{
+    width:24px; height:24px; border-radius:6px; flex-shrink:0;
+    background:var(--panel-alt); border:1.5px solid var(--border);
+    font-family:var(--font-mono); font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; color:var(--text-faint);
+    transition: all .18s;
+  }
+  .quiz-choice.selected .choice-letter{ border-color:var(--blue); color:var(--blue); }
+  .quiz-choice.correct .choice-letter{ border-color:var(--green); color:var(--green); }
+  .quiz-choice.wrong   .choice-letter{ border-color:var(--red);   color:var(--red); }
+
+  /* ---- Menyusun Baris Code ---- */
+  .quiz-dropzone-wrap{ display:flex; flex-direction:column; gap:10px; }
+  .quiz-dropzone{
+    min-height:120px; border-radius:12px;
+    border:2px dashed var(--border); background:var(--panel);
+    display:flex; flex-direction:column; padding:16px; gap:8px;
+    transition: border-color .2s, background .2s;
+    justify-content: center;
+  }
+  .quiz-dropzone.has-items {
+    justify-content: flex-start;
+  }
+  .quiz-dropzone.correct-zone{ border-color:var(--green); background:var(--green-dim); }
+  .quiz-dropzone.wrong-zone  { border-color:var(--red);   background:var(--red-dim); }
+  .quiz-dropzone .zone-placeholder{
+    font-size:13px; color:var(--text-faint); pointer-events:none;
+    text-align:center; line-height:1.5; padding: 0 20px;
+  }
+  .quiz-chip-pool{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; min-height:42px; }
+  
+  /* Chip styled like a code block line */
+  .quiz-chip{
+    padding:10px 14px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--panel-alt);
+    font-family:var(--font-mono); font-size:12.5px; color:var(--text);
+    cursor:pointer; user-select:none;
+    transition: transform .12s, border-color .15s, background .15s;
+    display:flex; align-items:center; gap:8px;
+    width: auto;
+    text-align: left;
+  }
+  .quiz-chip:hover{ border-color:var(--blue); background:#7aa2f710; }
+  .quiz-chip.placed{
+    border-color: var(--blue-dim);
+    background: var(--panel);
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    animation: codeLineIn .22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  }
+  @keyframes codeLineIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .quiz-chip.chip-correct{ border-color:var(--green); background:var(--green-dim); color:var(--green); }
+  .quiz-chip.chip-wrong  { border-color:var(--red);   background:var(--red-dim);   color:var(--red); }
+  .quiz-chip.locked{ pointer-events:none; cursor: default; }
+
+  /* Number tag inside target zone lines */
+  .quiz-line-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    width: 22px;
+    border-right: 1.5px solid var(--border);
+    margin-right: 8px;
+    display: inline-block;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  /* ---- Feedback banner ---- */
+  .quiz-feedback{
+    margin-top:16px; padding:13px 18px; border-radius:10px;
+    font-size:14px; line-height:1.55; display:flex; align-items:flex-start; gap:12px;
+    animation: qCardIn .25s ease;
+  }
+  .quiz-feedback.fb-correct{ background:var(--green-dim); border:1px solid var(--green); color:var(--green); }
+  .quiz-feedback.fb-wrong  { background:var(--red-dim);   border:1px solid var(--red);   color:var(--red); }
+  .quiz-feedback .fb-icon-svg{ width:20px; height:20px; flex-shrink:0; margin-top:2px; color: currentColor; }
+  .quiz-feedback .fb-body b{ display:block; font-weight:700; margin-bottom:3px; }
+
+  /* ---- Nav & check button ---- */
+  .quiz-nav{ display:flex; gap:12px; align-items:center; margin-top:18px; flex-wrap:wrap; }
+  .quiz-check-btn{
+    padding:13px 28px; border-radius:10px; border:none;
+    background: var(--green); color:#0b0f14; font-weight:700; font-size:14px;
+    cursor:pointer; font-family:var(--font-body);
+    transition: all .2s; box-shadow:0 4px 0 #2ba55a;
+  }
+  .quiz-check-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 0 #2ba55a; }
+  .quiz-check-btn:active{ transform:translateY(2px); box-shadow:none; }
+  .quiz-check-btn:disabled{ opacity:.4; cursor:default; transform:none; box-shadow:0 4px 0 #2ba55a; }
+  .quiz-next-btn{
+    padding:13px 28px; border-radius:10px; border:1.5px solid var(--border);
+    background:transparent; color:var(--text); font-weight:600; font-size:14px;
+    cursor:pointer; font-family:var(--font-body);
+    transition: all .2s;
+  }
+  .quiz-next-btn:hover{ background:var(--panel-alt); border-color:var(--text-dim); }
+
+  /* ---- Result screen ---- */
+  .quiz-result-screen{
+    text-align:center; padding:30px 20px; animation: qCardIn .5s ease;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+  }
+  .quiz-result-icon-svg{ width:76px; height:76px; margin-bottom:8px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+  .quiz-result-title{ font-family:var(--font-display); font-size:32px; font-weight:700; }
+  .quiz-result-score{ font-size:16px; color:var(--text-dim); max-width:360px; text-align:center; }
+  .quiz-retry-btn{
+    margin-top:8px; padding:13px 28px; border-radius:10px; border:none;
+    background:var(--red); color:#fff; font-weight:700; font-size:14px;
+    cursor:pointer; font-family:var(--font-body);
+    display:inline-flex; align-items:center; gap:8px;
+    transition: all .2s; box-shadow:0 4px 0 #c0362a;
+  }
+  .quiz-retry-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 0 #c0362a; }
+  .quiz-retry-btn:active{ transform:translateY(2px); box-shadow:none; }
+
+  /* ---- Shake animation for wrong answer ---- */
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+  }
+  .shake{ animation: shake .4s ease; }
+
+  /* ---- Bounce for correct ---- */
+  @keyframes bounceIn {
+    0%{transform:scale(.85);opacity:0}
+    60%{transform:scale(1.07);opacity:1}
+    100%{transform:scale(1)}
+  }
+  .bounce{ animation: bounceIn .4s ease; }
 </style>
 </head>
 <body>
@@ -1346,6 +1560,43 @@
           <div class="closing-line">Modul reporting <b>siap dipakai</b>. Pola yang sama di resource Mahasiswa tinggal diulang untuk Dosen, Mata Kuliah, dan Kelas.</div>
         </section>
 
+        <!-- R: KUIS INTERAKTIF -->
+        <section class="slide" data-file="R-kuis-interaktif.quiz" data-ext="md">
+          <div class="eyebrow">R · Kuis Interaktif</div>
+          <h1 class="slide-title">Uji Pemahamanmu — <span class="accent">Susun Kode</span></h1>
+          <p class="slide-sub" style="margin-bottom:20px;">Pilih atau susun baris kode dengan benar. Gaya Duolingo, materi Laravel Reporting!</p>
+
+          <!-- Progress bar kuis -->
+          <div class="quiz-progress-wrap">
+            <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
+            <span class="quiz-progress-label" id="quizProgressLabel">0 / 8</span>
+          </div>
+          <div class="quiz-hearts" id="quizHearts">
+            <svg class="quiz-heart-svg" viewBox="0 0 24 24" width="22" height="22"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+            <svg class="quiz-heart-svg" viewBox="0 0 24 24" width="22" height="22"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+            <svg class="quiz-heart-svg" viewBox="0 0 24 24" width="22" height="22"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+          </div>
+
+          <!-- Container Soal -->
+          <div id="quizContainer"></div>
+
+          <!-- Tombol Navigasi Kuis -->
+          <div class="quiz-nav" id="quizNav" style="display:none;">
+            <button class="quiz-check-btn" id="quizCheckBtn">Cek Jawaban</button>
+          </div>
+
+          <!-- Hasil Akhir -->
+          <div id="quizResult" style="display:none;" class="quiz-result-screen">
+            <div id="quizResultIcon"></div>
+            <div class="quiz-result-title" id="quizResultTitle">Luar Biasa!</div>
+            <div class="quiz-result-score" id="quizResultScore"></div>
+            <button class="quiz-retry-btn" id="quizRetryBtn">
+              <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              Coba Lagi
+            </button>
+          </div>
+        </section>
+
       </div>
 
       <div class="statusbar">
@@ -1662,6 +1913,406 @@
 </script>
 
 <div id="toastContainer" style="position: fixed; bottom: 50px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+</body>
+</html>
+<!-- ================================================================
+     QUIZ ENGINE - Duolingo-Style Interactive Quiz (Click-to-Reorder)
+================================================================ -->
+<script>
+(function(){
+  /* ── Data Soal ────────────────────────────────────────────── */
+  const QUESTIONS = [
+    {
+      type:'mc', badge:'📚 Konsep Dasar',
+      text:'Apa tujuan utama dari fitur <em>Reporting</em> pada aplikasi web?',
+      choices:[
+        'Menyimpan data ke database secara otomatis',
+        'Mengubah data mentah dari database menjadi laporan yang siap dibaca atau diunduh',
+        'Menghapus data lama yang tidak diperlukan',
+        'Menampilkan dashboard admin secara real-time'
+      ],
+      correct:1,
+      explain:'Reporting adalah proses mengubah baris-baris di database jadi bentuk yang siap dibaca: PDF atau Excel. Bukan untuk menyimpan atau menghapus data.'
+    },
+    {
+      type:'mc', badge:'📦 Package',
+      text:'Package mana yang digunakan untuk menghasilkan file <strong>.xlsx</strong> di Laravel?',
+      choices:[
+        'barryvdh/laravel-dompdf',
+        'laravel/excel-export',
+        'maatwebsite/excel',
+        'spatie/laravel-spreadsheet'
+      ],
+      correct:2,
+      explain:'<code>maatwebsite/excel</code> (Laravel Excel) adalah package khusus untuk ekspor/impor file .xlsx. Sedangkan <code>barryvdh/laravel-dompdf</code> digunakan untuk PDF.'
+    },
+    {
+      type:'mc', badge:'📦 Package',
+      text:'Package mana yang digunakan untuk menghasilkan file <strong>.pdf</strong> di Laravel?',
+      choices:[
+        'maatwebsite/excel',
+        'barryvdh/laravel-dompdf',
+        'league/flysystem',
+        'laravel/pdfgen'
+      ],
+      correct:1,
+      explain:'<code>barryvdh/laravel-dompdf</code> menggunakan mesin DomPDF untuk merender template Blade HTML menjadi file PDF yang bisa diunduh.'
+    },
+    {
+      type:'dd', badge:'🔧 Susun Kode',
+      text:'Susun baris kode berikut menjadi method <code>collection()</code> yang benar di dalam class <code>MahasiswaExport</code>:',
+      chips:['return Mahasiswa::all();','public function collection()','}','{'],
+      answer:['public function collection()','{','return Mahasiswa::all();','}'],
+      explain:'Urutan yang benar: deklarasi method → kurung buka → isi return → kurung tutup. Method ini wajib ada karena MahasiswaExport mengimplementasi <code>FromCollection</code>.'
+    },
+    {
+      type:'mc', badge:'🗺️ Route',
+      text:'Mengapa route ekspor laporan menggunakan method <strong>GET</strong>, bukan POST?',
+      choices:[
+        'Karena POST tidak bisa digunakan di Filament',
+        'Karena GET lebih cepat dari POST',
+        'Karena GET cocok untuk aksi mengambil data tanpa mengubah database, dan bisa dipanggil langsung dari link',
+        'Karena metode GET wajib dipakai untuk semua route di Laravel'
+      ],
+      correct:2,
+      explain:'GET digunakan untuk aksi yang bersifat idempotent — hanya mengambil data, tidak mengubah apa pun di database. Route GET juga bisa diakses langsung dari link/URL browser.'
+    },
+    {
+      type:'mc', badge:'🖼️ Template PDF',
+      text:'Mengapa template Blade untuk PDF sebaiknya menggunakan tag <code>&lt;table&gt;</code> HTML lama, bukan CSS Flexbox atau Grid?',
+      choices:[
+        'Karena tag table lebih bagus tampilannya',
+        'Karena DomPDF belum mendukung sepenuhnya CSS modern seperti Flexbox dan Grid',
+        'Karena Filament hanya bisa membaca format table',
+        'Karena Laravel tidak mengizinkan CSS di Blade'
+      ],
+      correct:1,
+      explain:'DomPDF merender HTML jadi PDF dengan engine yang terbatas. CSS modern (Flexbox/Grid) sering tidak dirender dengan benar, jadi <code>&lt;table&gt;</code> HTML tradisional jauh lebih aman dan stabil.'
+    },
+    {
+      type:'dd', badge:'🔧 Susun Kode',
+      text:'Susun method <code>mahasiswaPdf()</code> di <code>ReportController</code> dengan urutan yang benar:',
+      chips:["return $pdf->download('laporan.pdf');","$data = Mahasiswa::all();",'public function mahasiswaPdf()',"$pdf = Pdf::loadView('report.mahasiswa', ['mahasiswa'=>$data]);",'{','}'],
+      answer:['public function mahasiswaPdf()','{','$data = Mahasiswa::all();',"$pdf = Pdf::loadView('report.mahasiswa', ['mahasiswa'=>$data]);","return $pdf->download('laporan.pdf');",'}'],
+      explain:'Alurnya: deklarasi method → kurung buka → ambil data → render PDF → kembalikan download → kurung tutup. Urutan ini memastikan data sudah siap sebelum dirender.'
+    },
+    {
+      type:'mc', badge:'⚡ Filament',
+      text:'Apa fungsi dari <code>->openUrlInNewTab()</code> pada Header Action di Filament?',
+      choices:[
+        'Membuka URL dalam modal popup di dalam dashboard',
+        'Membuka URL download di tab browser baru agar halaman admin tidak tertutup',
+        'Memvalidasi URL sebelum diakses pengguna',
+        'Mengirim request POST ke URL tersebut secara background'
+      ],
+      correct:1,
+      explain:'Tanpa <code>->openUrlInNewTab()</code>, klik tombol export akan menggantikan halaman admin yang sedang dibuka. Method ini memastikan file dibuka di tab baru tanpa menutup dashboard.'
+    }
+  ];
+
+  /* ── State ─────────────────────────────────────────────────── */
+  let qIndex          = 0;
+  let hearts          = 3;
+  let score           = 0;
+  let answered        = false;
+
+  /* ── DOM refs ──────────────────────────────────────────────── */
+  const container     = document.getElementById('quizContainer');
+  const navEl         = document.getElementById('quizNav');
+  const checkBtn      = document.getElementById('quizCheckBtn');
+  const resultEl      = document.getElementById('quizResult');
+  const progressFill  = document.getElementById('quizProgressFill');
+  const progressLabel = document.getElementById('quizProgressLabel');
+  const heartsEl      = document.getElementById('quizHearts');
+  const retryBtn      = document.getElementById('quizRetryBtn');
+  const resultIcon    = document.getElementById('quizResultIcon');
+  const resultTitle   = document.getElementById('quizResultTitle');
+  const resultScore   = document.getElementById('quizResultScore');
+
+  /* ── Helpers ───────────────────────────────────────────────── */
+  function updateProgress(){
+    const pct = (qIndex / QUESTIONS.length) * 100;
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = qIndex + ' / ' + QUESTIONS.length;
+  }
+  function updateHearts(){
+    heartsEl.querySelectorAll('.quiz-heart-svg').forEach(function(s, i){
+      s.classList.toggle('dead', i >= hearts);
+    });
+  }
+  function clearNextBtns(){
+    navEl.querySelectorAll('.quiz-next-btn').forEach(b => b.remove());
+  }
+
+  /* ── Render question ───────────────────────────────────────── */
+  function renderQuestion(){
+    const q = QUESTIONS[qIndex];
+    answered = false;
+    clearNextBtns();
+    checkBtn.style.display = '';
+    checkBtn.disabled      = true;
+    checkBtn.textContent   = 'Cek Jawaban';
+    navEl.style.display    = 'flex';
+
+    container.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    card.innerHTML =
+      '<div class="q-type-badge">' + q.badge + '</div>' +
+      '<div class="q-text">' + q.text + '</div>';
+
+    if(q.type === 'mc') card.appendChild(buildMC(q));
+    if(q.type === 'dd') card.appendChild(buildDD(q));
+
+    container.appendChild(card);
+    checkBtn.onclick = function(){ checkAnswer(q); };
+    updateProgress();
+  }
+
+  /* ── Multiple Choice ───────────────────────────────────────── */
+  function buildMC(q){
+    const grid = document.createElement('div');
+    grid.className = 'quiz-choices';
+    const letters = ['A','B','C','D'];
+    q.choices.forEach(function(txt, i){
+      const btn = document.createElement('button');
+      btn.className = 'quiz-choice';
+      btn.innerHTML = '<span class="choice-letter">' + letters[i] + '</span><span>' + txt + '</span>';
+      btn.dataset.index = i;
+      btn.addEventListener('click', function(){
+        if(answered) return;
+        grid.querySelectorAll('.quiz-choice').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        checkBtn.disabled = false;
+      });
+      grid.appendChild(btn);
+    });
+    return grid;
+  }
+
+  /* ── Click-to-Sort (Menyusun Baris Code) ─────────────────────── */
+  function buildDD(q){
+    const wrap = document.createElement('div');
+
+    const zoneWrap = document.createElement('div');
+    zoneWrap.className = 'quiz-dropzone-wrap';
+    const zone = document.createElement('div');
+    zone.className = 'quiz-dropzone';
+    zone.dataset.zone = 'answer';
+    setPlaceholder(zone, 'Klik baris kode di bawah untuk mulai menyusun urutan dari atas ke bawah');
+    zoneWrap.appendChild(zone);
+    wrap.appendChild(zoneWrap);
+
+    const pool = document.createElement('div');
+    pool.className = 'quiz-chip-pool';
+    pool.dataset.zone = 'pool';
+
+    const shuffled = q.chips.slice().sort(function(){ return Math.random() - 0.5; });
+    shuffled.forEach(function(txt){
+      pool.appendChild(createChip(txt, zone, pool));
+    });
+    wrap.appendChild(pool);
+
+    return wrap;
+  }
+
+  function setPlaceholder(el, msg){
+    clearPlaceholder(el);
+    const ph = document.createElement('span');
+    ph.className = 'zone-placeholder';
+    ph.textContent = msg;
+    el.appendChild(ph);
+  }
+  function clearPlaceholder(el){
+    el.querySelectorAll('.zone-placeholder').forEach(function(p){ p.remove(); });
+  }
+  function syncZonePlaceholder(zone){
+    clearPlaceholder(zone);
+    if(!zone.querySelector('.quiz-chip')) {
+      setPlaceholder(zone, 'Klik baris kode di bawah untuk mulai menyusun');
+      zone.classList.remove('has-items');
+    } else {
+      zone.classList.add('has-items');
+    }
+  }
+  function syncCheckBtn(zone){
+    checkBtn.disabled = zone.querySelectorAll('.quiz-chip').length === 0;
+  }
+
+  /* ── Create chip for code lines ────────────────────────────── */
+  function createChip(txt, zone, pool){
+    const chip = document.createElement('div');
+    chip.className = 'quiz-chip';
+    chip.textContent = txt;
+
+    chip.addEventListener('click', function(){
+      if(answered) return;
+      
+      if(chip.parentElement === pool){
+        // Move to target zone (stack as a line of code)
+        clearPlaceholder(zone);
+        chip.classList.add('placed');
+        zone.appendChild(chip);
+      } else {
+        // Return to pool
+        chip.classList.remove('placed');
+        const num = chip.querySelector('.quiz-line-num');
+        if(num) num.remove();
+        pool.appendChild(chip);
+      }
+      
+      // Update line numbers inside the answer zone
+      rebuildLineNumbers(zone);
+      syncZonePlaceholder(zone);
+      syncCheckBtn(zone);
+    });
+
+    return chip;
+  }
+
+  function rebuildLineNumbers(zone){
+    const chips = zone.querySelectorAll('.quiz-chip');
+    chips.forEach(function(c, i){
+      let num = c.querySelector('.quiz-line-num');
+      if(!num) {
+        num = document.createElement('span');
+        num.className = 'quiz-line-num';
+        c.insertBefore(num, c.firstChild);
+      }
+      num.textContent = (i + 1);
+    });
+  }
+
+  /* ── Check answer ──────────────────────────────────────────── */
+  function checkAnswer(q){
+    if(answered) return;
+    answered = true;
+    checkBtn.style.display = 'none';
+
+    var correct = false;
+
+    if(q.type === 'mc'){
+      var selected = container.querySelector('.quiz-choice.selected');
+      if(!selected){ answered = false; checkBtn.style.display = ''; return; }
+      var idx = parseInt(selected.dataset.index);
+      correct = (idx === q.correct);
+      container.querySelectorAll('.quiz-choice').forEach(function(btn, i){
+        btn.classList.add('locked');
+        if(i === q.correct)             btn.classList.add('correct');
+        else if(i === idx && !correct)  btn.classList.add('wrong');
+      });
+    }
+
+    if(q.type === 'dd'){
+      var zone   = container.querySelector('.quiz-dropzone');
+      // Read clean text excluding the line numbers
+      var placed = Array.from(zone.querySelectorAll('.quiz-chip')).map(function(c){ 
+        return c.lastChild.textContent; 
+      });
+      if(placed.length === 0){ answered = false; checkBtn.style.display = ''; return; }
+      correct = JSON.stringify(placed) === JSON.stringify(q.answer);
+      Array.from(zone.querySelectorAll('.quiz-chip')).forEach(function(chip, i){
+        chip.classList.add('locked');
+        chip.classList.add(placed[i] === q.answer[i] ? 'chip-correct' : 'chip-wrong');
+      });
+      zone.classList.add(correct ? 'correct-zone' : 'wrong-zone');
+    }
+
+    if(!correct){
+      hearts = Math.max(0, hearts - 1);
+      updateHearts();
+    } else {
+      score++;
+    }
+
+    var fb = document.createElement('div');
+    fb.className = correct ? 'quiz-feedback fb-correct bounce' : 'quiz-feedback fb-wrong shake';
+    
+    // Custom beautiful SVGs instead of raw emoji icons
+    const successIcon = '<svg class="fb-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const errorIcon = '<svg class="fb-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    fb.innerHTML =
+      '<div class="fb-icon-svg">' + (correct ? successIcon : errorIcon) + '</div>' +
+      '<div class="fb-body"><b>' + (correct ? 'Benar!' : 'Kurang tepat.') + '</b> ' + q.explain + '</div>';
+    container.appendChild(fb);
+
+    var isLast   = qIndex === QUESTIONS.length - 1;
+    var gameOver = hearts <= 0;
+
+    var nextBtn = document.createElement('button');
+    nextBtn.className   = 'quiz-next-btn';
+    nextBtn.textContent = (isLast || gameOver) ? '🏁 Lihat Hasil' : 'Lanjut →';
+    nextBtn.onclick = function(){
+      if(isLast || gameOver){ showResult(); }
+      else { qIndex++; renderQuestion(); }
+    };
+    navEl.appendChild(nextBtn);
+  }
+
+  /* ── Result screen ─────────────────────────────────────────── */
+  function showResult(){
+    container.style.display = 'none';
+    navEl.style.display     = 'none';
+    resultEl.style.display  = 'flex';
+    progressFill.style.width  = '100%';
+    progressLabel.textContent = QUESTIONS.length + ' / ' + QUESTIONS.length;
+
+    var pct = Math.round((score / QUESTIONS.length) * 100);
+    
+    // Insert beautiful styled icons on score screen
+    const goldTrophy = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e0af68" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34M12 2a4 4 0 0 1 4 4v7a4 4 0 0 1-4 4 4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const blueThumbs = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#7aa2f7" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const redFlame = '<svg class="quiz-result-icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f7768e" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2zM12 12L19.07 4.93" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    if(pct >= 80){
+      resultIcon.innerHTML = goldTrophy;
+      resultTitle.textContent = 'Luar Biasa!';
+      resultTitle.style.color = 'var(--green)';
+    } else if(pct >= 50){
+      resultIcon.innerHTML = blueThumbs;
+      resultTitle.textContent = 'Bagus!';
+      resultTitle.style.color = 'var(--yellow)';
+    } else {
+      resultIcon.innerHTML = redFlame;
+      resultTitle.textContent = 'Coba Lagi!';
+      resultTitle.style.color = 'var(--red)';
+    }
+    resultScore.innerHTML =
+      'Skor kamu: <strong style="color:var(--text);font-size:20px;">' + score + ' / ' + QUESTIONS.length + '</strong> (' + pct + '%)<br><br>' +
+      (pct >= 80 ? 'Kamu sudah paham alur Reporting dengan Filament! 🎉' :
+       pct >= 50 ? 'Hampir! Baca lagi slide-slide di atas, lalu coba kembali.' :
+                  'Jangan menyerah! Pelajari ulang materi dari awal, kamu pasti bisa.');
+  }
+
+  /* ── Retry ─────────────────────────────────────────────────── */
+  retryBtn.addEventListener('click', function(){
+    qIndex   = 0; hearts = 3; score = 0; answered = false;
+    resultEl.style.display  = 'none';
+    container.style.display = '';
+    updateHearts();
+    renderQuestion();
+  });
+
+  /* ── Lazy init via MutationObserver ────────────────────────── */
+  function initQuiz(){
+    updateProgress();
+    updateHearts();
+    renderQuestion();
+  }
+  var quizSection = document.querySelector('[data-file="R-kuis-interaktif.quiz"]');
+  if(quizSection){
+    var obs = new MutationObserver(function(){
+      if(quizSection.classList.contains('active') && !quizSection.dataset.quizInit){
+        quizSection.dataset.quizInit = '1';
+        initQuiz();
+      }
+    });
+    obs.observe(quizSection, { attributes: true, attributeFilter: ['class'] });
+  }
+})();
+</script>
 
 </body>
 </html>
